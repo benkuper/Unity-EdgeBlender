@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[ExecuteInEditMode]
 public class EdgeBlend : MonoBehaviour {
 
     public Camera[] cams;
@@ -11,7 +12,7 @@ public class EdgeBlend : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-        mat = GetComponent<Renderer>().material;
+        mat = GetComponent<Renderer>().sharedMaterial;
         matrices = new Matrix4x4[cams.Length];
 	}
 	
@@ -39,7 +40,11 @@ public class EdgeBlend : MonoBehaviour {
                 }
             }
             
-            matrices[i] = P * V * M;
+            if(i >= matrices.Length)
+                matrices = new Matrix4x4[cams.Length];
+
+            matrices[i] = P * V * M; 
+            
             mat.SetMatrix("_Cam" + (i+1) + "Matrix", matrices[i]);
         }
         
