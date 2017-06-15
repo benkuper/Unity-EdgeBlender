@@ -7,12 +7,15 @@ public class EdgeBlend : MonoBehaviour {
 
     public Camera[] cams;
     public Matrix4x4[] matrices;
+    public bool showGizmos;
 
     Material mat;
 
 	// Use this for initialization
 	void Start () {
-        mat = GetComponent<Renderer>().sharedMaterial;
+        if (Application.isPlaying) mat = GetComponent<Renderer>().material;
+        else mat = GetComponent<Renderer>().sharedMaterial;
+
         matrices = new Matrix4x4[cams.Length];
 	}
 	
@@ -50,13 +53,22 @@ public class EdgeBlend : MonoBehaviour {
         
     }
 
+    public void setTargetCam(Camera cam)
+    {
+        int index = 0;
+        for (int i = 0; i < cams.Length; i++) if (cams[i] == cam) index = i + 1;
+        mat.SetFloat("_TargetCam", index);
+    }
+
     private void OnDrawGizmos()
     {
+        if (!showGizmos) return;
+
         int i = 0;
         foreach (Camera c in cams)
         {
-            //Gizmos.matrix = Matrix4x4.TRS(c.transform.position, c.transform.rotation, new Vector3(1.0f, 1.0f, 1.0f));
-            //Gizmos.DrawFrustum(Vector3.zero, c.fieldOfView, c.farClipPlane, c.nearClipPlane, c.aspect);
+            Gizmos.matrix = Matrix4x4.TRS(c.transform.position, c.transform.rotation, new Vector3(1.0f, 1.0f, 1.0f));
+            Gizmos.DrawFrustum(Vector3.zero, c.fieldOfView, c.farClipPlane, c.nearClipPlane, c.aspect);
             i++;
         }
     }

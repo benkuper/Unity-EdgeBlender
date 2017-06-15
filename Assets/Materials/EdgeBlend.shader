@@ -6,11 +6,11 @@ Shader "Custom/EdgeBlend"
 	{
 		_NumCams("NumCams",Range(1,6)) = 2
 		_TargetCam("TargetCam",Range(0,6)) = 0
-		_Fade("Fade",Range(-10,1)) = 0
+		_Fade("Fade",Range(-1,5)) = 0
 		_Expo("Expo",Range(0,10)) = 0.1
 		
 		_MainTex("Main Tex",2D) = "white"{}
-		
+		[Toggle]_ShowTex("Show Texture",Float) = 1.0
 	
 	}
 
@@ -49,6 +49,7 @@ Shader "Custom/EdgeBlend"
 			uniform sampler2D _DistTex;
 			float4 _DistTex_ST;
 
+			bool _ShowTex;
 
 			struct appdata
 			{
@@ -136,7 +137,7 @@ Shader "Custom/EdgeBlend"
 				}else
 				{
 					
-					if (_TargetCam > 0 && !isInside[_TargetCam - 1]) return fixed4(0, 0, 0, .5);
+					if (_TargetCam > 0 && _TargetCam < _NumCams && !isInside[_TargetCam - 1]) return fixed4(0, 0, 0, .5);
 
 					float camDists[6];
 					fixed4 cols[6];
@@ -144,7 +145,11 @@ Shader "Custom/EdgeBlend"
 					
 					for (float c = 0; c < _NumCams; c++)
 					{
-						cols[c] = fixed4(fmod((c + 1)*1.2, 1), fmod((c + 1)*1.5, 1), fmod((c + 1)*1.7, 1), 1);
+						if (_ShowTex) cols[c] = tex2D(_MainTex, i.uv);
+						else cols[c] = fixed4(fmod((c + 1)*1.2, 1), fmod((c + 1)*1.5, 1), fmod((c + 1)*1.7, 1), 1);
+
+						
+						
 						if (isInside[c]) 
 						{
 							float2 d = 1 - abs(camUV[c].xy - .5)*abs(camUV[c].xy - .5) * 4;
@@ -163,29 +168,29 @@ Shader "Custom/EdgeBlend"
 					for (int c2 = 0; c2 < _NumCams; c2++)
 					{
 						float p = camDists[c2] / totalDist;
-
-						//Fading for smoother/harder transition
-						const float PI = 3.14159;
-						p = p * 2 * PI;
-						p += _Fade*sin(p);
-						p = p / (2 * PI);
-						p = min(max(p, 0), 1);
+						p = pow(p, pow(2, _Fade));
 
 						//adjust exposition
-						p += _Expo*(.25 - (p - .5)*(p - .5));
 						totalWeight += p;
 						weights[c2] = p;
 					}
+
+
 					for (c2 = 0; c2 < _NumCams; c2++)
 					{
 						float p = weights[c2] / totalWeight;
-						if (totalWeight == 0) p = 1 + _Expo*.25 / _NumCams;
+						p += _Expo*(.25 - (p - .5)*(p - .5));
+						
 						if (isInside[c2])
 						{
 							col += cols[c2] * p;
 						}
 						
-						if(floor(_TargetCam) == c2+1) return fixed4(p, p, p, 1);
+						if (floor(_TargetCam) == c2 + 1)
+						{
+							if (_ShowTex) return cols[c2] * fixed4(p, p, p, 1);
+							else return fixed4(p, p, p, 1);
+						}
 					}
 
 					col.a = 1;
